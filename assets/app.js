@@ -1,288 +1,220 @@
 (() => {
-  const PHONE = '+380677325292';
+  const S = window.SITE || { base: '/', endpoint: '', phone: '', phoneText: '' };
   const PAGE = 24;
-  const app = document.getElementById('app');
-  let DB = null, DESC = null;
-
+  const $ = (s, el = document) => el.querySelector(s);
+  const $$ = (s, el = document) => [...el.querySelectorAll(s)];
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const money = (p) => (p.priceFrom ? 'від ' : '') + Math.round(p.price).toLocaleString('uk-UA').replace(/,/g, ' ') + ' ₴';
-  const thumb = (u, s = 320) => u.replace(/_w\d+_h\d+_/, `_w${s}_h${s}_`);
+  const fmt = (n) => Math.round(n).toLocaleString('uk-UA').replace(/[ ,]/g, ' ') + ' ₴';
+  const money = (p) => (p.priceFrom ? 'від ' : '') + fmt(p.price);
+  const thumb = (u, s = 320) => String(u || '').replace(/_w\d+_h\d+_/, `_w${s}_h${s}_`);
   const norm = (s) => String(s).toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-яіїєґ0-9]+/gi, ' ').trim();
-  const arrow = '<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+  const arrow = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+  const store = {
+    get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  };
 
-  async function load() {
+  let DB = null;
+  const load = async () => {
     if (DB) return DB;
-    const r = await fetch('data/catalog.json', { cache: 'no-cache' });
-    DB = await r.json();
+    DB = await fetch(S.base + 'data/catalog.json').then((r) => r.json());
     DB.byId = new Map(DB.products.map((p) => [p.id, p]));
-    DB.groupById = new Map(DB.groups.map((g) => [g.id, g]));
     DB.products.forEach((p) => (p._s = norm(p.name)));
-    const d = new Date(DB.updated);
-    document.getElementById('updated').textContent =
-      `© ${d.getFullYear()} Dripp_Clubb · Каталог оновлено ${d.toLocaleDateString('uk-UA')}`;
     return DB;
-  }
-  async function loadDesc() {
-    if (!DESC) DESC = await fetch('data/desc.json').then((r) => r.json()).catch(() => ({}));
-    return DESC;
-  }
+  };
 
-  const card = (p) => `
-    <a class="card reveal" href="#/p/${p.id}">
-      <div class="card__img">
-        <img src="${thumb(p.imgs[0] || '')}" alt="${esc(p.name)}" loading="lazy" width="320" height="320">
-        ${p.imgs[1] ? `<img src="${thumb(p.imgs[1])}" alt="" loading="lazy" aria-hidden="true">` : ''}
-        ${p.avail ? '' : '<span class="badge badge--out">Немає в наявності</span>'}
-      </div>
-      <div class="card__body">
-        <div class="card__name">${esc(p.name)}</div>
-        <div class="card__foot"><span class="price">${money(p)}</span><span class="card__go">${arrow}</span></div>
-      </div>
-    </a>`;
-
-  const skeleton = (n = 8) => `<div class="grid">${'<div class="sk" style="aspect-ratio:.78"></div>'.repeat(n)}</div>`;
-
-  // ---------- pages ----------
-  async function home() {
-    const db = await load();
-    const newest = [...db.products].filter((p) => p.avail).sort((a, b) => b.id.localeCompare(a.id)).slice(0, 12);
-    const groups = [...db.groups].sort((a, b) => b.count - a.count);
-    const tattoo = db.products.filter((p) => p.avail && p.group === '148022537').slice(0, 10);
-    app.innerHTML = `
-      <div class="wrap">
-        <section class="hero">
-          <div class="hero__body reveal">
-            <span class="pill"><i></i>Львів · доставка по Україні</span>
-            <h1>Dripp<span>_</span>Clubb</h1>
-            <p>Окуляри Oakley, крокси, одяг, тату-фарби, вело та батарейки Panasonic для ключів авто. Понад ${Math.floor(db.products.filter((p) => p.avail).length / 100) * 100} товарів у наявності.</p>
-            <div class="hero__cta">
-              <a class="btn btn--light" href="#/catalog">Перейти в каталог ${arrow}</a>
-              <a class="btn btn--ghost" style="color:#fff;border-color:rgba(255,255,255,.5)" href="#/catalog?new=1">Новинки</a>
-            </div>
-          </div>
-        </section>
-        <div class="stats">
-          <div class="stat"><b>230+</b><span>реальних відгуків</span></div>
-          <div class="stat"><b>${db.products.length}</b><span>товарів у каталозі</span></div>
-          <div class="stat"><b>Mono / Приват</b><span>оплата на картку</span></div>
-          <div class="stat"><b>НП</b><span>доставка по всій Україні</span></div>
-        </div>
-
-        <section class="sec">
-          <div class="sec__head"><h2>Категорії</h2><a href="#/catalog">Усі товари →</a></div>
-          <div class="cats">
-            ${groups.map((g, i) => `
-              <a class="cat ${i < 2 ? 'cat--big' : ''} reveal" href="#/catalog?g=${g.id}">
-                <img src="${esc(g.img)}" alt="" loading="lazy">
-                <span>${esc(g.name)} <small>${g.count}</small></span>
-              </a>`).join('')}
-            <a class="cat cat--all reveal" href="#/catalog"><b>Усі товари</b><small>${db.products.length} позицій →</small></a>
-          </div>
-        </section>
-
-        <section class="sec">
-          <div class="sec__head"><h2>Новинки</h2><a href="#/catalog?new=1">Дивитись усі →</a></div>
-          <div class="rail">${newest.map(card).join('')}</div>
-        </section>
-
-        <section class="sec">
-          <div class="trust">
-            <div class="tile tile--sage"><span class="ico">✓</span><div><h3>Підкажемо з вибором</h3><p>Допоможемо з розміром і моделлю, надішлемо додаткові фото в чат.</p></div></div>
-            <div class="tile tile--sky"><span class="ico">⚡</span><div><h3>Швидка відправка</h3><p>Новою Поштою або Укрпоштою після підтвердження замовлення. ТТН — одразу в чат.</p></div></div>
-            <div class="tile tile--cream"><span class="ico">★</span><div><h3>230+ відгуків</h3><p>Реальні відгуки наших покупців. <a href="https://cs4123958.prom.ua/ua/testimonials" target="_blank" rel="noopener" style="text-decoration:underline">Почитати відгуки</a></p></div></div>
-          </div>
-        </section>
-
-        ${tattoo.length ? `
-        <section class="sec">
-          <div class="sec__head"><h2>Для тату-майстрів</h2><a href="#/catalog?g=148022537">Усе для тату →</a></div>
-          <div class="rail">${tattoo.map(card).join('')}</div>
-        </section>` : ''}
-
-        <section class="band">
-          <h2>Не знаєте, яка батарейка підійде до <span>ключа авто?</span></h2>
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <a class="btn btn--clay" href="tel:${PHONE}">Зателефонувати</a>
-            <a class="btn btn--light" href="#/catalog?g=158039269">Батарейки ${arrow}</a>
-          </div>
-        </section>
-      </div>`;
+  // old #/ links from the first version of the site
+  if (location.hash.startsWith('#/')) {
+    const [path, q] = location.hash.slice(2).split('?');
+    if (path.startsWith('p/')) load().then((db) => { const p = db.byId.get(path.slice(2)); location.replace(S.base + (p ? p.path : 'catalog/')); });
+    else if (path.startsWith('catalog')) location.replace(S.base + 'catalog/' + (q ? '?' + q : ''));
+    else if (path.startsWith('info')) location.replace(S.base + 'info/');
+    else history.replaceState(null, '', location.pathname);
   }
 
-  async function catalog(params) {
-    app.innerHTML = `<div class="wrap"><div class="page-title"><h1>Каталог</h1></div>${skeleton()}</div>`;
-    const db = await load();
-    const st = {
-      g: params.get('g') || '', q: params.get('q') || '', sort: params.get('sort') || (params.get('new') ? 'new' : 'pop'),
-      stock: params.get('stock') !== '0', min: params.get('min') || '', max: params.get('max') || '',
-    };
-    const g = db.groupById.get(st.g);
-    app.innerHTML = `
-      <div class="wrap">
-        <div class="page-title"><h1>${g ? esc(g.name) : st.sort === 'new' ? 'Новинки' : 'Каталог'}</h1></div>
-        <div class="toolbar">
-          <div class="chips" role="group" aria-label="Категорії">
-            <button class="chip" data-g="" aria-pressed="${!st.g}">Усі</button>
-            ${db.groups.map((x) => `<button class="chip" data-g="${x.id}" aria-pressed="${st.g === x.id}">${esc(x.name)}</button>`).join('')}
-          </div>
-          <div class="filters">
-            <select id="sort" aria-label="Сортування">
-              <option value="pop">Популярні</option><option value="new">Спочатку нові</option>
-              <option value="asc">Дешевші</option><option value="desc">Дорожчі</option>
-            </select>
-            <input id="min" type="number" inputmode="numeric" placeholder="Ціна від" value="${esc(st.min)}" aria-label="Ціна від">
-            <input id="max" type="number" inputmode="numeric" placeholder="до" value="${esc(st.max)}" aria-label="Ціна до">
-            <label class="toggle"><input id="stock" type="checkbox" ${st.stock ? 'checked' : ''}> Тільки в наявності</label>
-            <span class="count" id="count"></span>
-          </div>
-        </div>
-        <div class="grid" id="grid"></div>
-        <div class="more"><button class="btn btn--ink" id="more" hidden>Показати ще</button></div>
-      </div>`;
-    document.getElementById('sort').value = st.sort;
-    const si = document.getElementById('searchInput');
-    si.value = st.q;
-    if (params.get('focus')) si.focus();
+  // header + tab bar
+  const hdr = $('#hdr');
+  addEventListener('scroll', () => hdr.classList.toggle('is-scrolled', scrollY > 8), { passive: true });
+  const here = location.pathname.replace(S.base, '');
+  $$('.tabbar [data-tab]').forEach((a) => a.toggleAttribute('aria-current', (a.dataset.tab === 'home' && here === '') || (a.dataset.tab === 'catalog' && /^(catalog|c\/)/.test(here))));
+  const qs = new URLSearchParams(location.search);
+  $$('.search input').forEach((i) => (i.value = qs.get('q') || ''));
 
-    const tokens = norm(st.q).split(' ').filter(Boolean);
-    const min = +st.min || 0, max = +st.max || Infinity;
-    let list = db.products.filter((p) =>
-      (!st.g || p.group === st.g) && (!st.stock || p.avail) && p.price >= min && p.price <= max &&
-      tokens.every((t) => p._s.includes(t)));
-    if (st.sort === 'new') list.sort((a, b) => b.id.localeCompare(a.id));
-    if (st.sort === 'asc') list.sort((a, b) => a.price - b.price);
-    if (st.sort === 'desc') list.sort((a, b) => b.price - a.price);
+  // ---------- product gallery ----------
+  const main = $('#mainImg');
+  $$('.thumbs button').forEach((b) => (b.onclick = () => {
+    main.src = b.dataset.src;
+    $$('.thumbs button').forEach((x) => x.setAttribute('aria-current', x === b));
+  }));
 
-    const grid = document.getElementById('grid'), more = document.getElementById('more');
-    let shown = 0;
+  // ---------- catalogue filtering ----------
+  const tb = $('[data-catalog]');
+  if (tb) {
+    const grid = $('#grid'), more = $('#more'), count = $('[data-count]');
+    const f = Object.fromEntries($$('[data-f]', tb).map((el) => [el.dataset.f, el]));
+    const group = tb.dataset.group;
+    f.sort.value = qs.get('sort') || 'pop';
+    f.min.value = qs.get('min') || '';
+    f.max.value = qs.get('max') || '';
+    f.stock.checked = qs.get('stock') !== '0';
+    let list = [], shown = 0;
+    const card = (p) => `<a class="card" href="${S.base + p.path}"><div class="card__img"><img src="${esc(thumb(p.img))}" alt="${esc(p.name)}" loading="lazy" width="320" height="320">${p.img2 ? `<img src="${esc(thumb(p.img2))}" alt="" loading="lazy" aria-hidden="true">` : ''}${p.avail ? '' : '<span class="badge badge--out">Немає в наявності</span>'}</div><div class="card__body"><div class="card__name">${esc(p.name)}</div><div class="card__foot"><span class="price">${money(p)}</span><span class="card__go">${arrow}</span></div></div></a>`;
     const draw = () => {
       grid.insertAdjacentHTML('beforeend', list.slice(shown, shown + PAGE).map(card).join(''));
       shown = Math.min(shown + PAGE, list.length);
       more.hidden = shown >= list.length;
     };
-    document.getElementById('count').textContent = `${list.length} товарів`;
-    if (!list.length) grid.outerHTML = `<div class="empty"><h2>Нічого не знайшли</h2><p class="muted" style="margin:10px 0 20px">Спробуйте інший запит або напишіть нам — підберемо.</p><a class="btn btn--clay" href="#/catalog">Скинути фільтри</a></div>`;
-    else draw();
-    more.onclick = draw;
-    new IntersectionObserver((e) => { if (e[0].isIntersecting && !more.hidden) draw(); }, { rootMargin: '600px' }).observe(more);
-
-    const go = (patch) => {
-      const p = new URLSearchParams({ ...Object.fromEntries(new URLSearchParams(location.hash.split('?')[1] || '')), ...patch });
-      for (const [k, v] of [...p]) if (v === '' || k === 'focus' || k === 'new') p.delete(k);
-      if (patch.stock === '1') p.delete('stock');
-      location.hash = '#/catalog' + (p.toString() ? '?' + p : '');
+    const apply = async (push) => {
+      const db = await load();
+      const q = qs.get('q') || '';
+      const tokens = norm(q).split(' ').filter(Boolean);
+      const min = +f.min.value || 0, max = +f.max.value || Infinity;
+      list = db.products.filter((p) => (!group || p.group === group) && (!f.stock.checked || p.avail) && p.price >= min && p.price <= max && tokens.every((t) => p._s.includes(t)));
+      const s = f.sort.value;
+      if (s === 'new') list.sort((a, b) => b.id.localeCompare(a.id));
+      if (s === 'asc') list.sort((a, b) => a.price - b.price);
+      if (s === 'desc') list.sort((a, b) => b.price - a.price);
+      grid.innerHTML = list.length ? '' : `<div class="empty" style="grid-column:1/-1"><h2>Нічого не знайшли</h2><p class="muted">Спробуйте інший запит або зателефонуйте — підберемо.</p></div>`;
+      shown = 0;
+      if (list.length) draw(); else more.hidden = true;
+      count.textContent = `${list.length} товарів`;
+      if (q) $('.page-title h1').textContent = `Пошук: ${q}`;
+      if (push) {
+        const p = new URLSearchParams();
+        if (q) p.set('q', q);
+        if (s !== 'pop') p.set('sort', s);
+        if (f.min.value) p.set('min', f.min.value);
+        if (f.max.value) p.set('max', f.max.value);
+        if (!f.stock.checked) p.set('stock', '0');
+        history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : ''));
+      }
     };
-    app.querySelectorAll('.chip').forEach((b) => (b.onclick = () => go({ g: b.dataset.g })));
-    document.getElementById('sort').onchange = (e) => go({ sort: e.target.value });
-    document.getElementById('stock').onchange = (e) => go({ stock: e.target.checked ? '1' : '0' });
-    ['min', 'max'].forEach((id) => (document.getElementById(id).onchange = (e) => go({ [id]: e.target.value })));
-  }
-
-  async function product(id) {
-    app.innerHTML = `<div class="wrap" style="padding-top:24px">${skeleton(2)}</div>`;
-    const db = await load();
-    const p = db.byId.get(id);
-    if (!p) { app.innerHTML = `<div class="wrap empty"><h2>Товар не знайдено</h2><p class="muted" style="margin:10px 0 20px">Можливо, його вже продали.</p><a class="btn btn--clay" href="#/catalog">До каталогу</a></div>`; return; }
-    const g = db.groupById.get(p.group);
-    const similar = db.products.filter((x) => x.group === p.group && x.id !== p.id && x.avail).slice(0, 12);
-    document.title = `${p.name} — Dripp_Clubb`;
-    app.innerHTML = `
-      <div class="wrap">
-        <nav class="crumbs" aria-label="Навігація"><a href="#/">Головна</a>/<a href="#/catalog">Каталог</a>${g ? `/<a href="#/catalog?g=${g.id}">${esc(g.name)}</a>` : ''}</nav>
-        <div class="pdp">
-          <div class="gallery">
-            <div class="gallery__main"><img id="mainImg" src="${thumb(p.imgs[0] || '', 640)}" alt="${esc(p.name)}"></div>
-            ${p.imgs.length > 1 ? `<div class="thumbs">${p.imgs.map((u, i) => `<button aria-label="Фото ${i + 1}" aria-current="${i === 0}" data-src="${thumb(u, 640)}"><img src="${thumb(u, 160)}" alt="" loading="lazy"></button>`).join('')}</div>` : ''}
-          </div>
-          <div>
-            <span class="${p.avail ? 'stock' : 'stock stock--out'}">${p.avail ? '● В наявності' : 'Немає в наявності'}</span>
-            <h1 style="margin-top:14px">${esc(p.name)}</h1>
-            <div class="pdp__price"><span class="price">${money(p)}</span></div>
-            <div class="buy">
-              <a class="btn btn--clay" href="${esc(p.url)}" target="_blank" rel="noopener">Замовити ${arrow}</a>
-              <a class="btn btn--ghost" href="tel:${PHONE}">Запитати по телефону</a>
-            </div>
-            <div class="perks">
-              <div class="perk"><b>🚚</b>Нова Пошта / Укрпошта по всій Україні</div>
-              <div class="perk"><b>💳</b>Оплата на картку Mono / Приват</div>
-              <div class="perk"><b>⚠️</b>Повернення та обміну немає — перевіряйте товар на пошті</div>
-            </div>
-            <div class="desc" id="desc"><div class="sk" style="height:120px"></div></div>
-          </div>
-        </div>
-        ${similar.length ? `<section class="sec"><div class="sec__head"><h2>Схожі товари</h2>${g ? `<a href="#/catalog?g=${g.id}">Усі →</a>` : ''}</div><div class="rail">${similar.map(card).join('')}</div></section>` : ''}
-      </div>`;
-    const main = document.getElementById('mainImg');
-    app.querySelectorAll('.thumbs button').forEach((b) => (b.onclick = () => {
-      main.src = b.dataset.src;
-      app.querySelectorAll('.thumbs button').forEach((x) => x.setAttribute('aria-current', x === b));
-    }));
-    const d = (await loadDesc())[id];
-    // descriptions are pre-sanitised by the scraper to a tag allow-list without attributes
-    document.getElementById('desc').innerHTML = d ? `<h3 style="font-size:18px;margin-bottom:12px">Опис</h3>${d}` : '<p class="muted">Опис уточнюйте у менеджера.</p>';
-  }
-
-  function info() {
-    app.innerHTML = `
-      <div class="wrap">
-        <div class="page-title"><h1>Доставка й оплата</h1></div>
-        <div class="info">
-          <div class="box"><h3>🚚 Доставка</h3><ul>
-            <li><b>Нова Пошта</b> — у відділення, поштомат або кур'єром.</li>
-            <li><b>Укрпошта</b> — по всій Україні.</li>
-            <li>Відправляємо після підтвердження замовлення, ТТН надсилаємо в чат.</li>
-            <li>Вартість — за тарифами перевізника.</li></ul></div>
-          <div class="box"><h3>💳 Оплата</h3><ul>
-            <li><b>Повна оплата на картку</b> — MonoBank <span class="cardnum">4441 1111 5893 0788</span> або ПриватБанк <span class="cardnum">5168 7451 1598 3550</span>, отримувач Жданов С. О.</li>
-            <li><b>Передоплата від 150 грн</b> на картку.</li>
-            <li><b>На рахунок (IBAN)</b> — з номером замовлення у призначенні.</li></ul></div>
-          <div class="box"><h3>🛒 Як замовити</h3><ul>
-            <li>Оберіть товар і натисніть «Замовити» — оформлення займе хвилину.</li>
-            <li>Або зателефонуйте: <a href="tel:${PHONE}" style="color:var(--clay);font-weight:700">+380 (67) 732-52-92</a>.</li></ul></div>
-          <div class="box box--warn" id="returns"><h3>⚠️ Повернення та обмін</h3><p><b>Повернення та обміну немає.</b></p><p style="margin-top:10px">Будь ласка, ретельно перевіряйте товар на пошті під час отримання — до того, як забрати посилку.</p></div>
-        </div>
-        <section class="sec faq" id="faq">
-          <div class="sec__head"><h2>Питання та відповіді</h2></div>
-          ${[
-            ['Як швидко ви відправляєте?', 'Одразу після підтвердження замовлення (і надходження оплати, якщо обрано оплату на картку). Номер ТТН повідомляємо в чаті.'],
-            ['Як підібрати батарейку для ключа авто?', 'Відкрийте ключ і подивіться маркування старої батарейки — CR2032, CR2025, CR2016, CR1620 або CR1632. Або напишіть марку, модель і рік авто — підкажемо.'],
-            ['Чи є оптові ціни?', 'Так, на частину товарів. Для великого замовлення зателефонуйте — розрахуємо індивідуально.'],
-            ['Чи можна повернути або обміняти товар?', 'Ні, повернення та обміну немає. Будь ласка, ретельно перевіряйте товар на пошті під час отримання.'],
-          ].map(([q, a]) => `<details><summary>${q}</summary><p>${a}</p></details>`).join('')}
-        </section>
-      </div>`;
-    const anchor = location.hash.split('#')[2]; if (anchor) document.getElementById(anchor)?.scrollIntoView();
-  }
-
-  // ---------- router ----------
-  async function route() {
-    const [path, query] = location.hash.slice(1).split('?');
-    const params = new URLSearchParams(query || '');
-    document.title = 'Dripp_Clubb — окуляри, крокси, одяг, тату, вело';
-    if (path !== '/catalog') document.getElementById('searchInput').value = '';
-    document.querySelectorAll('.nav a, .tabbar a').forEach((a) => {
-      const h = a.getAttribute('href');
-      a.toggleAttribute('aria-current', h === '#' + (path || '/') || (h.startsWith('#/catalog') && path === '/catalog' && !h.includes('?')));
+    Object.values(f).forEach((el) => el.addEventListener('change', () => apply(true)));
+    more.onclick = draw;
+    new IntersectionObserver((e) => { if (e[0].isIntersecting && !more.hidden) draw(); }, { rootMargin: '800px' }).observe(more);
+    // static HTML already shows the default view; re-render only when the URL asks for something else
+    if (location.search) apply(false);
+    else load().then((db) => {
+      list = db.products.filter((p) => (!group || p.group === group) && p.avail);
+      shown = grid.children.length;
+      more.hidden = shown >= list.length;
     });
-    try {
-      if (path.startsWith('/p/')) await product(path.slice(3));
-      else if (path === '/catalog') await catalog(params);
-      else if (path.startsWith('/info')) info();
-      else await home();
-    } catch (e) {
-      console.error(e);
-      app.innerHTML = `<div class="wrap empty"><h2>Не вдалося завантажити</h2><p class="muted" style="margin:10px 0 20px">Перевірте інтернет і спробуйте ще раз.</p><button class="btn btn--clay" onclick="location.reload()">Оновити</button></div>`;
-    }
-    if (!path.startsWith('/catalog') || !params.get('focus')) window.scrollTo({ top: 0, behavior: 'instant' });
   }
 
-  document.getElementById('searchForm').onsubmit = (e) => {
-    e.preventDefault();
-    const q = document.getElementById('searchInput').value.trim();
-    location.hash = '#/catalog' + (q ? '?q=' + encodeURIComponent(q) : '');
+  // ---------- cart ----------
+  let cart = store.get('dc_cart', []);
+  const save = () => { store.set('dc_cart', cart); badge(); };
+  const badge = () => {
+    const n = cart.reduce((a, i) => a + i.qty, 0);
+    $$('[data-cart-count]').forEach((b) => { b.textContent = n; b.hidden = !n; });
   };
-  const hdr = document.getElementById('hdr');
-  addEventListener('scroll', () => hdr.classList.toggle('is-scrolled', scrollY > 8), { passive: true });
-  addEventListener('hashchange', route);
-  route();
+  const total = (items) => items.reduce((a, i) => a + i.price * i.qty, 0);
+  const drawer = $('#cart'), body = $('#cartBody');
+  const open = () => { drawer.hidden = false; document.body.style.overflow = 'hidden'; render(); setTimeout(() => $('.x', drawer).focus(), 30); };
+  const close = () => { drawer.hidden = true; document.body.style.overflow = ''; };
+  $$('[data-cart-open]').forEach((b) => (b.onclick = open));
+  drawer.addEventListener('click', (e) => { if (e.target.closest('[data-cart-close]')) close(); });
+  addEventListener('keydown', (e) => { if (e.key === 'Escape' && !drawer.hidden) close(); });
+
+  let checkoutItems = null; // null → whole cart, array → "buy in 1 click"
+  function render() {
+    const items = checkoutItems || cart;
+    if (!items.length) {
+      body.innerHTML = `<div class="empty"><p class="muted">Кошик порожній</p><a class="btn btn--clay" href="${S.base}catalog/">До каталогу</a></div>`;
+      return;
+    }
+    body.innerHTML = `
+      <ul class="lines">${items.map((i) => `
+        <li class="line" data-id="${esc(i.id)}">
+          <img src="${esc(i.img)}" alt="" width="64" height="64">
+          <div><a href="${S.base + i.path}">${esc(i.name)}</a><b>${fmt(i.price)}</b></div>
+          ${checkoutItems ? '' : `<div class="qty"><button type="button" data-q="-1" aria-label="Менше">−</button><span>${i.qty}</span><button type="button" data-q="1" aria-label="Більше">+</button></div>`}
+        </li>`).join('')}</ul>
+      <div class="sum"><span>Разом</span><b>${fmt(total(items))}</b></div>
+      <form class="order" id="orderForm" novalidate>
+        <h3>Оформлення</h3>
+        <label>Ім'я та прізвище<input name="name" required autocomplete="name" maxlength="80"></label>
+        <label>Телефон<input name="phone" required type="tel" inputmode="tel" autocomplete="tel" placeholder="+380" maxlength="20"></label>
+        <label>Місто<input name="city" required autocomplete="address-level2" maxlength="60"></label>
+        <label>Відділення / поштомат Нової Пошти<input name="np" required placeholder="Напр. Відділення №12" maxlength="80"></label>
+        <fieldset><legend>Оплата</legend>
+          ${S.endpoint ? '<label class="radio"><input type="radio" name="pay" value="mono" checked> Карткою онлайн (monobank, Apple Pay, Google Pay)</label>' : ''}
+          <label class="radio"><input type="radio" name="pay" value="card" ${S.endpoint ? '' : 'checked'}> Переказ на картку Mono / Приват</label>
+          <label class="radio"><input type="radio" name="pay" value="prepay"> Передоплата 150 грн, решта при отриманні</label>
+        </fieldset>
+        <label>Коментар (необов'язково)<textarea name="comment" rows="2" maxlength="300"></textarea></label>
+        <p class="note">⚠️ Повернення та обміну немає — перевіряйте товар на пошті.</p>
+        <p class="err" id="orderErr" role="alert" hidden></p>
+        <button class="btn btn--clay btn--block" type="submit">Підтвердити замовлення · ${fmt(total(items))}</button>
+      </form>`;
+    $$('[data-q]', body).forEach((b) => (b.onclick = () => {
+      const id = b.closest('.line').dataset.id, it = cart.find((x) => x.id === id);
+      it.qty += +b.dataset.q;
+      if (it.qty < 1) cart = cart.filter((x) => x !== it);
+      save(); render();
+    }));
+    $('#orderForm').onsubmit = submit;
+  }
+
+  async function submit(e) {
+    e.preventDefault();
+    const form = e.target, err = $('#orderErr'), btn = $('button[type=submit]', form);
+    const d = Object.fromEntries(new FormData(form));
+    const phone = d.phone.replace(/[^\d+]/g, '');
+    const bad = !d.name.trim() ? 'Вкажіть ім\'я' : !/^\+?\d{10,13}$/.test(phone) ? 'Перевірте номер телефону' : !d.city.trim() ? 'Вкажіть місто' : !d.np.trim() ? 'Вкажіть відділення Нової Пошти' : '';
+    if (bad) { err.textContent = bad; err.hidden = false; return; }
+    err.hidden = true;
+    const items = (checkoutItems || cart).map(({ id, name, price, qty, path }) => ({ id, name, price, qty, url: location.origin + S.base + path }));
+    const order = { ...d, phone, items, total: total(items), page: location.href };
+    btn.disabled = true; btn.textContent = 'Надсилаємо…';
+    if (S.endpoint) {
+      try {
+        const r = await fetch(S.endpoint, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(order) });
+        const res = await r.json();
+        if (!r.ok || !res.ok) throw new Error(res.error || 'error');
+        done(order, res);
+        if (res.payUrl) location.href = res.payUrl;
+        return;
+      } catch {
+        err.textContent = 'Не вдалося надіслати замовлення. Спробуйте ще раз або зателефонуйте нам.';
+        err.hidden = false; btn.disabled = false; btn.textContent = 'Спробувати ще раз';
+        return;
+      }
+    }
+    // no backend yet: hand the order over by SMS / phone
+    const text = `Замовлення Dripp_Clubb\n${items.map((i) => `${i.name} ×${i.qty} — ${fmt(i.price * i.qty)}`).join('\n')}\nРазом: ${fmt(order.total)}\n${d.name}, ${phone}\n${d.city}, ${d.np}\nОплата: ${{ card: 'на картку', prepay: 'передоплата 150 грн' }[d.pay] || d.pay}${d.comment ? '\n' + d.comment : ''}`;
+    body.innerHTML = `<div class="done"><h3>Залишився один крок</h3><p class="muted">Надішліть замовлення SMS — текст уже готовий — або зателефонуйте нам.</p>
+      <a class="btn btn--clay btn--block" href="sms:${S.phone}?&body=${encodeURIComponent(text)}">Надіслати SMS</a>
+      <a class="btn btn--ghost btn--block" href="tel:${S.phone}">Зателефонувати ${esc(S.phoneText)}</a>
+      <button class="btn btn--ghost btn--block" type="button" id="copyOrder">Скопіювати замовлення</button></div>`;
+    $('#copyOrder').onclick = (ev) => navigator.clipboard?.writeText(text).then(() => (ev.target.textContent = 'Скопійовано ✓'));
+  }
+
+  function done(order, res) {
+    if (!checkoutItems) { cart = []; save(); }
+    body.innerHTML = `<div class="done"><h3>Дякуємо! Замовлення №${esc(res.orderId || '')} прийнято</h3>
+      <p class="muted">${res.payUrl ? 'Переходимо до оплати…' : 'Ми зв\'яжемося з вами найближчим часом для підтвердження.'}</p>
+      ${order.pay === 'card' || order.pay === 'prepay' ? `<p>Реквізити для оплати — у розділі <a class="link" href="${S.base}info/">«Доставка й оплата»</a>. Після оплати надішліть, будь ласка, квитанцію.</p>` : ''}</div>`;
+  }
+
+  // product buttons
+  const buy = $('[data-product]');
+  if (buy) {
+    const item = JSON.parse(buy.dataset.product);
+    const add = $('[data-add]', buy), now = $('[data-buy-now]', buy);
+    if (add) add.onclick = () => {
+      const it = cart.find((x) => x.id === item.id);
+      if (it) it.qty++; else cart.push({ ...item, qty: 1 });
+      save(); checkoutItems = null; open();
+    };
+    if (now) now.onclick = () => { checkoutItems = [{ ...item, qty: 1 }]; open(); };
+  }
+  $$('[data-cart-open]').forEach((b) => b.addEventListener('click', () => { checkoutItems = null; render(); }));
+  badge();
+
+  // returning from the monobank payment page (the real payment status reaches us via webhook)
+  if (qs.get('order')) {
+    open();
+    body.innerHTML = `<div class="done"><h3>Дякуємо за замовлення №${esc(qs.get('order'))}</h3><p class="muted">Щойно оплата підтвердиться, ми надішлемо номер ТТН.</p></div>`;
+  }
 })();

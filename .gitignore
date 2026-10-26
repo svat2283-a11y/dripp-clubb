@@ -1,0 +1,3 @@
+dist/
+worker/.wrangler/
+node_modules/

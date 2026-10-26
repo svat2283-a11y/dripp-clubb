@@ -225,3 +225,56 @@ h2{font-size:clamp(26px,3.4vw,40px)}
   .tabbar svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round}
   .count{margin-left:0;width:100%}
 }
+
+/* ---- v2: static pages, cart, checkout ---- */
+.skip{position:absolute;left:-9999px;top:8px;z-index:100;background:#fff;padding:10px 14px;border-radius:10px}
+.skip:focus{left:8px}
+.btn--onclay{color:#fff;border-color:rgba(255,255,255,.5)}
+.btn--block{width:100%}
+.band__cta{display:flex;gap:10px;flex-wrap:wrap}
+.link{color:var(--clay);font-weight:700;text-decoration:underline}
+.box h2{font-size:20px;margin-bottom:14px}
+.box p+p{margin-top:10px}
+.desc__t{font-size:18px;margin-bottom:12px}
+.perk--warn{background:#fff4ec;color:var(--clay-d)}
+.crumbs span{color:var(--ink-2)}
+.page-title p{margin-top:8px}
+.cartbtn{position:relative;flex-shrink:0;width:46px;height:46px;border-radius:50%;border:1.5px solid var(--line);background:#fff;display:grid;place-items:center;cursor:pointer}
+.cartbtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round}
+.cartbtn__n{position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:var(--clay);color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center}
+.drawer{position:fixed;inset:0;z-index:80}
+.drawer__bg{position:absolute;inset:0;background:rgba(20,17,15,.45);animation:fade .2s}
+.drawer__panel{position:absolute;top:0;right:0;bottom:0;width:min(460px,100%);background:var(--bg);display:flex;flex-direction:column;animation:slide .25s cubic-bezier(.2,.7,.2,1)}
+@keyframes fade{from{opacity:0}} @keyframes slide{from{transform:translateX(100%)}}
+.drawer__head{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid var(--line)}
+.drawer__head h2{font-size:22px}
+.x{width:40px;height:40px;border-radius:50%;border:0;background:#fff;font-size:24px;cursor:pointer}
+.drawer__body{overflow-y:auto;padding:16px 20px 32px;flex:1}
+.lines{list-style:none;padding:0;display:grid;gap:10px}
+.line{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;background:#fff;border-radius:var(--r-sm);padding:10px}
+.line img{width:64px;height:64px;border-radius:10px;object-fit:cover}
+.line a{font-size:13.5px;font-weight:600;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.line b{display:block;margin-top:4px}
+.qty{display:flex;align-items:center;gap:8px}
+.qty button{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--line);background:#fff;cursor:pointer;font-size:16px}
+.sum{display:flex;justify-content:space-between;align-items:center;padding:16px 4px;font-size:18px}
+.sum b{font-family:var(--display)}
+.order{display:grid;gap:12px;background:#fff;border-radius:var(--r);padding:18px}
+.order h3{font-size:18px}
+.order label{display:grid;gap:6px;font-weight:600;font-size:14px}
+.order input:not([type=radio]),.order textarea{height:46px;border:1.5px solid var(--line);border-radius:12px;padding:0 14px;background:#fff;width:100%}
+.order textarea{height:auto;padding:10px 14px;resize:vertical}
+.order input:focus,.order textarea:focus{outline:0;border-color:var(--clay)}
+.order fieldset{border:0;padding:0;display:grid;gap:8px}
+.order legend{font-weight:700;font-size:14px;margin-bottom:6px}
+.radio{display:flex!important;grid-template-columns:none;align-items:center;gap:10px;font-weight:500!important;background:var(--bg);border-radius:12px;padding:12px}
+.radio input{accent-color:var(--clay);width:18px;height:18px}
+.note{font-size:13px;color:var(--clay-d);font-weight:600}
+.err{color:#b3261e;font-weight:700;font-size:14px}
+.done{display:grid;gap:12px;padding:24px 0;text-align:center}
+.tabbar button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:700;color:var(--ink-2);background:none;border:0;position:relative}
+.tabbar button .cartbtn__n{top:-6px;right:calc(50% - 22px)}
+@media (max-width:1080px){.ftr__grid{grid-template-columns:1fr 1fr}}
+@media (max-width:780px){.hdr .cartbtn{display:none}.tabbar button svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round}.ftr__grid{grid-template-columns:1fr}}
+
+[hidden]{display:none!important}

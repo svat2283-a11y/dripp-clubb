@@ -1,0 +1,11 @@
+name = "dripp-clubb-orders"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+SITE_URL = "https://svat2283-a11y.github.io/dripp-clubb"
+
+# Secrets — set once, never commit them:
+#   npx wrangler secret put MONO_TOKEN   (plata by mono → Налаштування → токен)
+#   npx wrangler secret put TG_TOKEN     (token from @BotFather)
+#   npx wrangler secret put TG_CHAT      (your chat id)
