@@ -108,7 +108,9 @@ export default {
     const url = new URL(req.url);
     const site = new URL(env.SITE_URL).origin;
     const origin = site;
-    if (req.method === 'OPTIONS') return json({}, 204, origin);
+    if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: {
+      'access-control-allow-origin': origin, 'access-control-allow-methods': 'POST, OPTIONS',
+      'access-control-allow-headers': 'content-type', 'access-control-max-age': '86400' } });
     if (req.method === 'POST' && url.pathname === '/order') {
       if (req.headers.get('origin') && req.headers.get('origin') !== site) return json({ ok: false, error: 'forbidden' }, 403, origin);
       try { return await createOrder(req, env, origin); }
