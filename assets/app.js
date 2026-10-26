@@ -19,7 +19,7 @@
     DB.products.forEach((p) => (p._s = norm(p.name)));
     const d = new Date(DB.updated);
     document.getElementById('updated').textContent =
-      `© ${d.getFullYear()} Dripp_Clubb · Каталог оновлено ${d.toLocaleDateString('uk-UA')} · Оформлення замовлень — через Prom.ua`;
+      `© ${d.getFullYear()} Dripp_Clubb · Каталог оновлено ${d.toLocaleDateString('uk-UA')}`;
     return DB;
   }
   async function loadDesc() {
@@ -53,8 +53,8 @@
         <section class="hero">
           <div class="hero__body reveal">
             <span class="pill"><i></i>Львів · доставка по Україні</span>
-            <h1>Тільки<br><span>оригінальні</span> речі</h1>
-            <p>Окуляри Oakley, крокси, одяг, тату-фарби, вело та оригінальні батарейки Panasonic для ключів авто. Понад ${Math.floor(db.products.filter((p) => p.avail).length / 100) * 100} товарів у наявності.</p>
+            <h1>Dripp<span>_</span>Clubb</h1>
+            <p>Окуляри Oakley, крокси, одяг, тату-фарби, вело та батарейки Panasonic для ключів авто. Понад ${Math.floor(db.products.filter((p) => p.avail).length / 100) * 100} товарів у наявності.</p>
             <div class="hero__cta">
               <a class="btn btn--light" href="#/catalog">Перейти в каталог ${arrow}</a>
               <a class="btn btn--ghost" style="color:#fff;border-color:rgba(255,255,255,.5)" href="#/catalog?new=1">Новинки</a>
@@ -64,7 +64,7 @@
         <div class="stats">
           <div class="stat"><b>230+</b><span>реальних відгуків</span></div>
           <div class="stat"><b>${db.products.length}</b><span>товарів у каталозі</span></div>
-          <div class="stat"><b>100%</b><span>оригінал, без підробок</span></div>
+          <div class="stat"><b>Mono / Приват</b><span>оплата на картку</span></div>
           <div class="stat"><b>НП</b><span>доставка по всій Україні</span></div>
         </div>
 
@@ -87,9 +87,9 @@
 
         <section class="sec">
           <div class="trust">
-            <div class="tile tile--sage"><span class="ico">✓</span><div><h3>Тільки оригінал</h3><p>Працюємо з перевіреними постачальниками. Сумніваєтесь — надішлемо додаткові фото.</p></div></div>
+            <div class="tile tile--sage"><span class="ico">✓</span><div><h3>Підкажемо з вибором</h3><p>Допоможемо з розміром і моделлю, надішлемо додаткові фото в чат.</p></div></div>
             <div class="tile tile--sky"><span class="ico">⚡</span><div><h3>Швидка відправка</h3><p>Новою Поштою або Укрпоштою після підтвердження замовлення. ТТН — одразу в чат.</p></div></div>
-            <div class="tile tile--cream"><span class="ico">★</span><div><h3>230+ відгуків</h3><p>Реальні покупці на Prom.ua. <a href="https://cs4123958.prom.ua/ua/testimonials" target="_blank" rel="noopener" style="text-decoration:underline">Почитати відгуки</a></p></div></div>
+            <div class="tile tile--cream"><span class="ico">★</span><div><h3>230+ відгуків</h3><p>Реальні відгуки наших покупців. <a href="https://cs4123958.prom.ua/ua/testimonials" target="_blank" rel="noopener" style="text-decoration:underline">Почитати відгуки</a></p></div></div>
           </div>
         </section>
 
@@ -199,13 +199,13 @@
             <h1 style="margin-top:14px">${esc(p.name)}</h1>
             <div class="pdp__price"><span class="price">${money(p)}</span></div>
             <div class="buy">
-              <a class="btn btn--clay" href="${esc(p.url)}" target="_blank" rel="noopener">Купити через Prom ${arrow}</a>
+              <a class="btn btn--clay" href="${esc(p.url)}" target="_blank" rel="noopener">Замовити ${arrow}</a>
               <a class="btn btn--ghost" href="tel:${PHONE}">Запитати по телефону</a>
             </div>
             <div class="perks">
               <div class="perk"><b>🚚</b>Нова Пошта / Укрпошта по всій Україні</div>
-              <div class="perk"><b>🛡</b>Пром-оплата: гроші захищені до отримання</div>
-              <div class="perk"><b>↩</b>Повернення та обмін за законом</div>
+              <div class="perk"><b>💳</b>Оплата на картку Mono / Приват</div>
+              <div class="perk"><b>⚠️</b>Повернення та обміну немає — перевіряйте товар на пошті</div>
             </div>
             <div class="desc" id="desc"><div class="sk" style="height:120px"></div></div>
           </div>
@@ -233,34 +233,32 @@
             <li>Відправляємо після підтвердження замовлення, ТТН надсилаємо в чат.</li>
             <li>Вартість — за тарифами перевізника.</li></ul></div>
           <div class="box"><h3>💳 Оплата</h3><ul>
-            <li><b>Пром-оплата</b> — карткою онлайн, гроші захищені Prom.ua.</li>
             <li><b>Повна оплата на картку</b> — MonoBank <span class="cardnum">4441 1111 5893 0788</span> або ПриватБанк <span class="cardnum">5168 7451 1598 3550</span>, отримувач Жданов С. О.</li>
             <li><b>Передоплата від 150 грн</b> на картку.</li>
             <li><b>На рахунок (IBAN)</b> — з номером замовлення у призначенні.</li></ul></div>
           <div class="box"><h3>🛒 Як замовити</h3><ul>
-            <li>Оберіть товар і натисніть «Купити через Prom» — оформлення займе хвилину.</li>
+            <li>Оберіть товар і натисніть «Замовити» — оформлення займе хвилину.</li>
             <li>Або зателефонуйте: <a href="tel:${PHONE}" style="color:var(--clay);font-weight:700">+380 (67) 732-52-92</a>.</li></ul></div>
-          <div class="box"><h3>↩ Повернення</h3><p>Повернення та обмін — відповідно до Закону України «Про захист прав споживачів». Товар без слідів використання, в оригінальному пакуванні. Напишіть нам перед відправленням.</p></div>
+          <div class="box box--warn" id="returns"><h3>⚠️ Повернення та обмін</h3><p><b>Повернення та обміну немає.</b></p><p style="margin-top:10px">Будь ласка, ретельно перевіряйте товар на пошті під час отримання — до того, як забрати посилку.</p></div>
         </div>
         <section class="sec faq" id="faq">
           <div class="sec__head"><h2>Питання та відповіді</h2></div>
           ${[
-            ['Це оригінальні товари?', 'Так. Ми продаємо лише оригінальну продукцію від перевірених постачальників. Сумніваєтесь — надішлемо додаткові фото.'],
             ['Як швидко ви відправляєте?', 'Одразу після підтвердження замовлення (і надходження оплати, якщо обрано оплату на картку). Номер ТТН повідомляємо в чаті.'],
             ['Як підібрати батарейку для ключа авто?', 'Відкрийте ключ і подивіться маркування старої батарейки — CR2032, CR2025, CR2016, CR1620 або CR1632. Або напишіть марку, модель і рік авто — підкажемо.'],
             ['Чи є оптові ціни?', 'Так, на частину товарів. Для великого замовлення зателефонуйте — розрахуємо індивідуально.'],
-            ['Чи можна повернути товар?', 'Так, згідно із законом про захист прав споживачів. Товар має бути без слідів використання.'],
+            ['Чи можна повернути або обміняти товар?', 'Ні, повернення та обміну немає. Будь ласка, ретельно перевіряйте товар на пошті під час отримання.'],
           ].map(([q, a]) => `<details><summary>${q}</summary><p>${a}</p></details>`).join('')}
         </section>
       </div>`;
-    if (location.hash.includes('#faq')) document.getElementById('faq').scrollIntoView();
+    const anchor = location.hash.split('#')[2]; if (anchor) document.getElementById(anchor)?.scrollIntoView();
   }
 
   // ---------- router ----------
   async function route() {
     const [path, query] = location.hash.slice(1).split('?');
     const params = new URLSearchParams(query || '');
-    document.title = 'Dripp_Clubb — тільки оригінальні речі';
+    document.title = 'Dripp_Clubb — окуляри, крокси, одяг, тату, вело';
     if (path !== '/catalog') document.getElementById('searchInput').value = '';
     document.querySelectorAll('.nav a, .tabbar a').forEach((a) => {
       const h = a.getAttribute('href');
