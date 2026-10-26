@@ -52,7 +52,7 @@
       <div class="wrap">
         <section class="hero">
           <div class="hero__body reveal">
-            <span class="pill"><i></i>Відправка щодня · Вінниця</span>
+            <span class="pill"><i></i>Львів · доставка по Україні</span>
             <h1>Тільки<br><span>оригінальні</span> речі</h1>
             <p>Окуляри Oakley, крокси, одяг, тату-фарби, вело та оригінальні батарейки Panasonic для ключів авто. Понад ${Math.floor(db.products.filter((p) => p.avail).length / 100) * 100} товарів у наявності.</p>
             <div class="hero__cta">
