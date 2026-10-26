@@ -83,7 +83,7 @@ ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" hr
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="${url('assets/styles.css?v=' + VER)}">
 ${ld.map((o) => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, '\\u003c')}</script>`).join('\n')}
-<script>window.SITE=${JSON.stringify({ base: BASE, endpoint: cfg.orderEndpoint, phone: cfg.phone, phoneText: cfg.phoneText })}</script>
+<script>window.SITE=${JSON.stringify({ base: BASE, endpoint: cfg.orderEndpoint, mono: !!(cfg.orderEndpoint && cfg.monoEnabled), phone: cfg.phone, phoneText: cfg.phoneText })}</script>
 </head>
 <body>
 <a class="skip" href="#main">До вмісту</a>

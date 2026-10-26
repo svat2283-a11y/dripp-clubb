@@ -138,8 +138,8 @@
         <label>Місто<input name="city" required autocomplete="address-level2" maxlength="60"></label>
         <label>Відділення / поштомат Нової Пошти<input name="np" required placeholder="Напр. Відділення №12" maxlength="80"></label>
         <fieldset><legend>Оплата</legend>
-          ${S.endpoint ? '<label class="radio"><input type="radio" name="pay" value="mono" checked> Карткою онлайн (monobank, Apple Pay, Google Pay)</label>' : ''}
-          <label class="radio"><input type="radio" name="pay" value="card" ${S.endpoint ? '' : 'checked'}> Переказ на картку Mono / Приват</label>
+          ${S.mono ? '<label class="radio"><input type="radio" name="pay" value="mono" checked> Карткою онлайн (monobank, Apple Pay, Google Pay)</label>' : ''}
+          <label class="radio"><input type="radio" name="pay" value="card" ${S.mono ? '' : 'checked'}> Переказ на картку Mono / Приват</label>
           <label class="radio"><input type="radio" name="pay" value="prepay"> Передоплата 150 грн, решта при отриманні</label>
         </fieldset>
         <label>Коментар (необов'язково)<textarea name="comment" rows="2" maxlength="300"></textarea></label>
@@ -176,12 +176,10 @@
         if (res.payUrl) location.href = res.payUrl;
         return;
       } catch {
-        err.textContent = 'Не вдалося надіслати замовлення. Спробуйте ще раз або зателефонуйте нам.';
-        err.hidden = false; btn.disabled = false; btn.textContent = 'Спробувати ще раз';
-        return;
+        // backend unavailable: fall through to SMS / phone so the order is never lost
       }
     }
-    // no backend yet: hand the order over by SMS / phone
+    // no backend (or it failed): hand the order over by SMS / phone
     const text = `Замовлення Dripp_Clubb\n${items.map((i) => `${i.name} ×${i.qty} — ${fmt(i.price * i.qty)}`).join('\n')}\nРазом: ${fmt(order.total)}\n${d.name}, ${phone}\n${d.city}, ${d.np}\nОплата: ${{ card: 'на картку', prepay: 'передоплата 150 грн' }[d.pay] || d.pay}${d.comment ? '\n' + d.comment : ''}`;
     body.innerHTML = `<div class="done"><h3>Залишився один крок</h3><p class="muted">Надішліть замовлення SMS — текст уже готовий — або зателефонуйте нам.</p>
       <a class="btn btn--clay btn--block" href="sms:${S.phone}?&body=${encodeURIComponent(text)}">Надіслати SMS</a>

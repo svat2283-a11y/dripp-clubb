@@ -15,12 +15,13 @@ const clean = (s, n = 120) => String(s ?? '').replace(/[<>]/g, '').trim().slice(
 const fmt = (n) => Math.round(n).toLocaleString('uk-UA') + ' ₴';
 
 async function telegram(env, text) {
-  if (!env.TG_TOKEN || !env.TG_CHAT) return;
-  await fetch(`https://api.telegram.org/bot${env.TG_TOKEN}/sendMessage`, {
+  if (!env.TG_TOKEN || !env.TG_CHAT) return false;
+  const r = await fetch(`https://api.telegram.org/bot${env.TG_TOKEN}/sendMessage`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ chat_id: env.TG_CHAT, text, disable_web_page_preview: true }),
   });
+  return r.ok;
 }
 
 let catalogCache = { at: 0, byId: null };
@@ -74,7 +75,7 @@ async function createOrder(req, env, origin) {
     } else payUrl = inv.pageUrl;
   }
 
-  await telegram(env, [
+  const delivered = await telegram(env, [
     `🛒 Нове замовлення ${orderId}`,
     ...items.map((i) => `• ${i.name} ×${i.qty} — ${fmt(i.price * i.qty)}\n  ${i.url}`),
     `Разом: ${fmt(total)}`,
@@ -85,6 +86,8 @@ async function createOrder(req, env, origin) {
     `💳 ${PAY_LABEL[pay]}${pay === 'mono' ? (payUrl ? ' — очікуємо оплату' : ' — рахунок НЕ створено') : ''}`,
     o.comment ? `💬 ${clean(o.comment, 300)}` : '',
   ].filter(Boolean).join('\n'));
+  // never report success for an order the shop did not receive — the site then falls back to SMS/phone
+  if (!delivered) return json({ ok: false, error: 'notify failed' }, 502, origin);
 
   return json({ ok: true, orderId, payUrl }, 200, origin);
 }
@@ -112,6 +115,12 @@ export default {
       catch (e) { await telegram(env, '⚠️ Помилка замовлення: ' + e.message); return json({ ok: false, error: 'server' }, 500, origin); }
     }
     if (req.method === 'POST' && url.pathname === '/mono-webhook') return monoWebhook(req, env);
+    // one-time setup helper: shows who wrote to the bot, until TG_CHAT is configured
+    if (url.pathname === '/tg-chats' && env.TG_TOKEN && !env.TG_CHAT) {
+      const u = await fetch(`https://api.telegram.org/bot${env.TG_TOKEN}/getUpdates`).then((r) => r.json());
+      const chats = [...new Map((u.result || []).map((x) => x.message?.chat).filter(Boolean).map((c) => [c.id, { id: c.id, name: [c.first_name, c.last_name].filter(Boolean).join(' '), username: c.username }])).values()];
+      return json({ chats });
+    }
     return new Response('Dripp_Clubb orders API', { status: 200 });
   },
 };
