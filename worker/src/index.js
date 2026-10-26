@@ -119,7 +119,9 @@ export default {
     if (url.pathname === '/tg-chats' && env.TG_TOKEN && !env.TG_CHAT) {
       const u = await fetch(`https://api.telegram.org/bot${env.TG_TOKEN}/getUpdates`).then((r) => r.json());
       const chats = [...new Map((u.result || []).map((x) => x.message?.chat).filter(Boolean).map((c) => [c.id, { id: c.id, name: [c.first_name, c.last_name].filter(Boolean).join(' '), username: c.username }])).values()];
-      return json({ chats });
+      const me = await fetch(`https://api.telegram.org/bot${env.TG_TOKEN}/getMe`).then((r) => r.json());
+      const wh = await fetch(`https://api.telegram.org/bot${env.TG_TOKEN}/getWebhookInfo`).then((r) => r.json());
+      return json({ chats, telegram: u.ok ? 'ok' : u.description, updates: (u.result || []).length, bot: me.result?.username, webhook: wh.result?.url || '', pending: wh.result?.pending_update_count });
     }
     return new Response('Dripp_Clubb orders API', { status: 200 });
   },
