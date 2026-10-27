@@ -131,6 +131,7 @@
           <img src="${esc(i.img)}" alt="" width="64" height="64">
           <div><a href="${S.base + i.path}">${esc(i.name)}</a><b>${fmt(i.price)}</b></div>
           ${checkoutItems ? '' : `<div class="qty"><button type="button" data-q="-1" aria-label="Менше">−</button><span>${i.qty}</span><button type="button" data-q="1" aria-label="Більше">+</button></div>`}
+          <label class="variant">${i.sized ? 'Розмір <em>*</em>' : 'Колір / варіант (якщо є)'}<input data-variant maxlength="40" value="${esc(i.variant || '')}" placeholder="${i.sized ? 'Напр. M, 42, 27 см' : 'Напр. чорний'}"></label>
         </li>`).join('')}</ul>
       <div class="sum"><span>Разом</span><b>${fmt(total(items))}</b></div>
       <form class="order" id="orderForm" novalidate>
@@ -148,7 +149,7 @@
           <label class="radio"><input type="radio" name="pay" value="iban" ${S.mono ? '' : 'checked'}> Оплата за реквізитами (повна сума)</label>
           <label class="radio"><input type="radio" name="pay" value="prepay"> Передоплата ${S.prepay || 150} грн за реквізитами, решта при отриманні</label>
         </fieldset>
-        <label>Коментар (необов'язково)<textarea name="comment" rows="2" maxlength="300"></textarea></label>
+        <label>Коментар до замовлення<textarea name="comment" rows="2" maxlength="300" placeholder="Побажання, зручний час для дзвінка тощо"></textarea></label>
         <p class="feeline" id="feeLine" hidden></p>
         <p class="note">⚠️ Повернення та обміну немає — перевіряйте товар на пошті.</p>
         <p class="err" id="orderErr" role="alert" hidden></p>
@@ -171,6 +172,11 @@
       if (it.qty < 1) cart = cart.filter((x) => x !== it);
       save(); render();
     }));
+    $$('[data-variant]', body).forEach((inp) => inp.addEventListener('input', () => {
+      const id = inp.closest('.line').dataset.id;
+      const it = (checkoutItems || cart).find((x) => x.id === id);
+      if (it) { it.variant = inp.value; if (!checkoutItems) store.set('dc_cart', cart); }
+    }));
     $('#orderForm').onsubmit = submit;
   }
 
@@ -180,9 +186,15 @@
     const d = Object.fromEntries(new FormData(form));
     const phone = d.phone.replace(/[^\d+]/g, '');
     const bad = !d.name.trim() ? 'Вкажіть ім\'я' : !/^\+?\d{10,13}$/.test(phone) ? 'Перевірте номер телефону' : !d.city.trim() ? 'Вкажіть місто' : d.carrier === 'up' ? (!/^\d{5}$/.test(d.upIndex || '') ? 'Вкажіть індекс відділення Укрпошти (5 цифр)' : '') : !d.np.trim() ? 'Оберіть відділення Нової Пошти' : '';
+    const noSize = (checkoutItems || cart).find((i) => i.sized && !String(i.variant || '').trim());
+    if (!bad && noSize) {
+      err.textContent = `Вкажіть розмір для «${noSize.name.slice(0, 40)}…»`; err.hidden = false;
+      $(`.line[data-id="${noSize.id}"] [data-variant]`, body)?.focus();
+      return;
+    }
     if (bad) { err.textContent = bad; err.hidden = false; return; }
     err.hidden = true;
-    const items = (checkoutItems || cart).map(({ id, name, price, qty, path }) => ({ id, name, price, qty, url: location.origin + S.base + path }));
+    const items = (checkoutItems || cart).map(({ id, name, price, qty, path, variant }) => ({ id, name, price, qty, variant: String(variant || '').trim(), url: location.origin + S.base + path }));
     const order = { ...d, phone, items, total: total(items), page: location.href };
     btn.disabled = true; btn.textContent = 'Надсилаємо…';
     if (S.endpoint) {
@@ -198,7 +210,7 @@
       }
     }
     // no backend (or it failed): hand the order over by SMS / phone
-    const text = `Замовлення Dripp_Clubb\n${items.map((i) => `${i.name} ×${i.qty} — ${fmt(i.price * i.qty)}`).join('\n')}\nРазом: ${fmt(order.total)}\n${d.name}, ${phone}\n${d.carrier === 'up' ? `Укрпошта: ${d.city}, ${d.upIndex}` : `Нова Пошта: ${d.city}, ${d.np}`}\nОплата: ${{ iban: 'за реквізитами', prepay: 'передоплата', mono: 'карткою онлайн' }[d.pay] || d.pay}${d.comment ? '\n' + d.comment : ''}`;
+    const text = `Замовлення Dripp_Clubb\n${items.map((i) => `${i.name}${i.variant ? ` [${i.variant}]` : ''} ×${i.qty} — ${fmt(i.price * i.qty)}`).join('\n')}\nРазом: ${fmt(order.total)}\n${d.name}, ${phone}\n${d.carrier === 'up' ? `Укрпошта: ${d.city}, ${d.upIndex}` : `Нова Пошта: ${d.city}, ${d.np}`}\nОплата: ${{ iban: 'за реквізитами', prepay: 'передоплата', mono: 'карткою онлайн' }[d.pay] || d.pay}${d.comment ? '\n' + d.comment : ''}`;
     body.innerHTML = `<div class="done"><h3>Залишився один крок</h3><p class="muted">Надішліть замовлення SMS — текст уже готовий — або зателефонуйте нам.</p>
       <a class="btn btn--clay btn--block" href="sms:${S.phone}?&body=${encodeURIComponent(text)}">Надіслати SMS</a>
       <a class="btn btn--ghost btn--block" href="tel:${S.phone}">Зателефонувати ${esc(S.phoneText)}</a>

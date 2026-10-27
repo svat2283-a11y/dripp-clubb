@@ -249,7 +249,9 @@ function productPage(p) {
   const similar = cat.products.filter((x) => x.group === p.group && x.id !== p.id && x.avail).slice(0, 12);
   const crumbs = [{ name: 'Головна', path: '' }, { name: 'Каталог', path: 'catalog/' }, ...(g ? [{ name: g.name, path: g.path }] : []), { name: p.name, path: p.path }];
   const brand = brandOf(p.name);
-  const item = { id: p.id, name: p.name, price: p.price, img: thumb(p.imgs[0] || '', 160), path: p.path };
+  // clothing, shoes, hats and gloves come in sizes: the buyer must state one at checkout
+  const sized = /одяг|взутт|крокс|головн|рукавиц/i.test(g?.name || '');
+  const item = { id: p.id, name: p.name, price: p.price, img: thumb(p.imgs[0] || '', 160), path: p.path, sized };
   const body = `
 <div class="wrap">
   <nav class="crumbs" aria-label="Навігація">${crumbs.slice(0, -1).map((c) => `<a href="${url(c.path)}">${esc(c.name)}</a>`).join('<span>/</span>')}</nav>
@@ -267,6 +269,7 @@ function productPage(p) {
         <button class="btn btn--ghost" type="button" data-add>Додати в кошик</button>` : `<a class="btn btn--ink" href="tel:${cfg.phone}">Уточнити наявність</a>`}
       </div>
       <div class="perks">
+        ${sized ? '<div class="perk"><b>📏</b>Розмір вкажіть при оформленні — підкажемо, якщо сумніваєтесь</div>' : ''}
         <div class="perk"><b>🚚</b>Нова Пошта / Укрпошта по всій Україні</div>
         <div class="perk"><b>💳</b>Оплата карткою онлайн або за реквізитами</div>
         <div class="perk perk--warn"><b>⚠️</b>Повернення та обміну немає — перевіряйте товар на пошті</div>

@@ -46,7 +46,7 @@ async function createOrder(req, env, origin) {
     const p = byId.get(String(it.id));
     const qty = Math.min(Math.max(parseInt(it.qty, 10) || 1, 1), 20);
     if (!p || !p.avail) return json({ ok: false, error: 'unavailable: ' + it.id }, 409, origin);
-    items.push({ id: p.id, name: p.name, price: p.price, qty, img: p.img, url: env.SITE_URL.replace(/\/$/, '') + '/' + p.path });
+    items.push({ id: p.id, name: p.name, price: p.price, qty, variant: clean(it.variant, 40), img: p.img, url: env.SITE_URL.replace(/\/$/, '') + '/' + p.path });
   }
   const total = items.reduce((a, i) => a + i.price * i.qty, 0);
   const pay = ['mono', 'iban', 'prepay'].includes(o.pay) ? o.pay : 'iban';
@@ -82,7 +82,7 @@ async function createOrder(req, env, origin) {
 
   const delivered = await telegram(env, [
     `🛒 Нове замовлення ${orderId}`,
-    ...items.map((i) => `• ${i.name} ×${i.qty} — ${fmt(i.price * i.qty)}\n  ${i.url}`),
+    ...items.map((i) => `• ${i.name}${i.variant ? `\n  📏 ${i.variant}` : ''} ×${i.qty} — ${fmt(i.price * i.qty)}\n  ${i.url}`),
     fee ? `Товари: ${fmt(total)} + комісія 1,5%: ${(fee).toFixed(2)} ₴\nДо оплати: ${(total + fee).toFixed(2)} ₴` : `Разом: ${fmt(total)}`,
     '',
     `👤 ${clean(o.name)}`,
