@@ -226,7 +226,9 @@
     if ((order.pay === 'iban' || order.pay === 'prepay') && S.req) {
       const R = S.req;
       const amount = order.pay === 'prepay' ? (S.prepay || 150) : order.total;
-      const what = order.items.length === 1 ? order.items[0].name.slice(0, 70) : `${order.items[0].name.slice(0, 50)} та ще ${order.items.length - 1} тов.`;
+      const cut = (t, n) => (t.length > n ? t.slice(0, n).replace(/[\s,|/-]+\S*$/, '') : t);
+      const first = order.items[0];
+      const what = cut(first.name, order.items.length === 1 ? 70 : 45) + (first.variant ? ` (${first.variant})` : '') + (order.items.length > 1 ? ` та ще ${order.items.length - 1} тов.` : '');
       const purpose = `${order.pay === 'prepay' ? 'Передоплата' : 'Оплата'} за товар ${what}, згідно замовлення №${id}. Без ПДВ`;
       const rows = [
         ['Сума', fmt2(amount), String(amount)],
@@ -293,7 +295,9 @@
     });
     const filterNp = () => {
       const q = np.value.trim().toLowerCase();
-      const list = (q ? branches.filter((b) => String(b.n) === q.replace(/\D/g, '') || b.name.toLowerCase().includes(q)) : branches).slice(0, 40);
+      const num = q.replace(/\D/g, '');
+      const list = (q ? branches.filter((b) => (num && String(b.n) === num) || b.name.toLowerCase().includes(q))
+        .sort((a, b) => (String(b.n) === num) - (String(a.n) === num)) : branches).slice(0, 40);
       show(npList, list, (b) => (np.value = b.name));
     };
     np.addEventListener('input', filterNp);
