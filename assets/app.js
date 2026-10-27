@@ -234,10 +234,13 @@
         ['Сума', fmt2(amount), String(amount)],
         ['Отримувач', R.receiver, R.receiver],
         ['IBAN', R.iban, R.iban],
-        ['РНОКПП / ЄДРПОУ', R.code, R.code],
+        ['ІПН / ЄДРПОУ', R.code, R.code],
+        ['Банк', R.bank, R.bank],
+        ['МФО', R.mfo, R.mfo],
+        ['ЄДРПОУ банку', R.bankCode, R.bankCode],
         ['Призначення платежу', purpose, purpose],
       ];
-      const all = `Отримувач: ${R.receiver}\nIBAN: ${R.iban}\nРНОКПП/ЄДРПОУ: ${R.code}\nБанк: ${R.bank}, МФО ${R.mfo}\nСума: ${amount} грн\nПризначення платежу: ${purpose}`;
+      const all = `Отримувач: ${R.receiver}\nIBAN: ${R.iban}\nІПН/ЄДРПОУ: ${R.code}\nБанк: ${R.bank}\nМФО: ${R.mfo}\nЄДРПОУ банку: ${R.bankCode}\nСума: ${amount} грн\nПризначення платежу: ${purpose}`;
       html += `<div class="pay">
         <h3>${order.pay === 'prepay' ? `Передоплата ${amount} грн` : 'Оплата за реквізитами'}</h3>
         <p class="muted">Скопіюйте дані у свій банк. Відправимо після надходження оплати.</p>

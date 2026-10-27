@@ -318,8 +318,10 @@ function infoPage() {
       <div class="reqs">
         <div><span>Отримувач</span><b>${esc(cfg.requisites.receiver)}</b></div>
         <div><span>IBAN</span><b class="cardnum">${esc(cfg.requisites.iban)}</b></div>
-        <div><span>РНОКПП / ЄДРПОУ</span><b>${esc(cfg.requisites.code)}</b></div>
-        <div><span>Банк</span><b>${esc(cfg.requisites.bank)}, МФО ${esc(cfg.requisites.mfo)}</b></div>
+        <div><span>ІПН / ЄДРПОУ</span><b>${esc(cfg.requisites.code)}</b></div>
+        <div><span>Банк</span><b>${esc(cfg.requisites.bank)}</b></div>
+        <div><span>МФО</span><b>${esc(cfg.requisites.mfo)}</b></div>
+        <div><span>ЄДРПОУ банку</span><b>${esc(cfg.requisites.bankCode)}</b></div>
         <div><span>Або на картку ФОП</span><b class="cardnum">${esc(cfg.requisites.card.replace(/(\d{4})(?=\d)/g, '$1 '))}</b></div>
       </div></div>
     <div class="box"><h2>🛒 Як замовити</h2><ul>
