@@ -3,6 +3,7 @@
 // Secrets (wrangler secret put): MONO_TOKEN, TG_TOKEN, TG_CHAT. Var: SITE_URL.
 
 const MONO = 'https://api.monobank.ua/api/merchant';
+const CARD_FEE = 0.015; // surcharge for paying by card on the site; transfers and prepayment are free
 const PAY_LABEL = { mono: 'Карткою онлайн (monobank)', card: 'Переказ на картку', prepay: 'Передоплата 150 грн' };
 
 const json = (body, status = 200, origin = '*') =>
@@ -49,6 +50,7 @@ async function createOrder(req, env, origin) {
   }
   const total = items.reduce((a, i) => a + i.price * i.qty, 0);
   const pay = ['mono', 'card', 'prepay'].includes(o.pay) ? o.pay : 'card';
+  const fee = pay === 'mono' ? Math.round(total * CARD_FEE * 100) / 100 : 0;
   const orderId = 'DC' + Date.now().toString(36).toUpperCase().slice(-6);
 
   let payUrl = null;
@@ -57,12 +59,15 @@ async function createOrder(req, env, origin) {
       method: 'POST',
       headers: { 'X-Token': env.MONO_TOKEN, 'content-type': 'application/json' },
       body: JSON.stringify({
-        amount: Math.round(total * 100),
+        amount: Math.round((total + fee) * 100),
         ccy: 980,
         merchantPaymInfo: {
           reference: orderId,
           destination: `Замовлення ${orderId} — Dripp_Clubb`,
-          basketOrder: items.map((i) => ({ name: i.name.slice(0, 120), qty: i.qty, sum: Math.round(i.price * 100), icon: i.img, unit: 'шт.', code: i.id })),
+          basketOrder: [
+            ...items.map((i) => ({ name: i.name.slice(0, 120), qty: i.qty, sum: Math.round(i.price * 100), icon: i.img, unit: 'шт.', code: i.id })),
+            ...(fee ? [{ name: 'Комісія за оплату карткою 1,5%', qty: 1, sum: Math.round(fee * 100), unit: 'посл.', code: 'fee' }] : []),
+          ],
         },
         redirectUrl: env.SITE_URL.replace(/\/$/, '') + '/?order=' + orderId,
         webHookUrl: new URL('/mono-webhook', req.url).toString(),
@@ -78,7 +83,7 @@ async function createOrder(req, env, origin) {
   const delivered = await telegram(env, [
     `🛒 Нове замовлення ${orderId}`,
     ...items.map((i) => `• ${i.name} ×${i.qty} — ${fmt(i.price * i.qty)}\n  ${i.url}`),
-    `Разом: ${fmt(total)}`,
+    fee ? `Товари: ${fmt(total)} + комісія 1,5%: ${(fee).toFixed(2)} ₴\nДо оплати: ${(total + fee).toFixed(2)} ₴` : `Разом: ${fmt(total)}`,
     '',
     `👤 ${clean(o.name)}`,
     `📞 ${phone}`,

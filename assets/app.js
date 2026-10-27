@@ -5,6 +5,8 @@
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const fmt = (n) => Math.round(n).toLocaleString('uk-UA').replace(/[ ,]/g, ' ') + ' ₴';
+  const CARD_FEE = 0.015; // must match worker/src/index.js
+  const fmt2 = (n) => n.toFixed(2).replace('.', ',') + ' ₴';
   const money = (p) => (p.priceFrom ? 'від ' : '') + fmt(p.price);
   const thumb = (u, s = 320) => String(u || '').replace(/_w\d+_h\d+_/, `_w${s}_h${s}_`);
   const norm = (s) => String(s).toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-яіїєґ0-9]+/gi, ' ').trim();
@@ -138,15 +140,26 @@
         <label>Місто<input name="city" required autocomplete="address-level2" maxlength="60"></label>
         <label>Відділення / поштомат Нової Пошти<input name="np" required placeholder="Напр. Відділення №12" maxlength="80"></label>
         <fieldset><legend>Оплата</legend>
-          ${S.mono ? '<label class="radio"><input type="radio" name="pay" value="mono" checked> Карткою онлайн (monobank, Apple Pay, Google Pay)</label>' : ''}
+          ${S.mono ? '<label class="radio"><input type="radio" name="pay" value="mono" checked> Карткою онлайн (monobank, Apple Pay, Google Pay) <small class="fee">+1,5%</small></label>' : ''}
           <label class="radio"><input type="radio" name="pay" value="card" ${S.mono ? '' : 'checked'}> Переказ на картку Mono / Приват</label>
           <label class="radio"><input type="radio" name="pay" value="prepay"> Передоплата 150 грн, решта при отриманні</label>
         </fieldset>
         <label>Коментар (необов'язково)<textarea name="comment" rows="2" maxlength="300"></textarea></label>
+        <p class="feeline" id="feeLine" hidden></p>
         <p class="note">⚠️ Повернення та обміну немає — перевіряйте товар на пошті.</p>
         <p class="err" id="orderErr" role="alert" hidden></p>
-        <button class="btn btn--clay btn--block" type="submit">Підтвердити замовлення · ${fmt(total(items))}</button>
+        <button class="btn btn--clay btn--block" type="submit" id="orderBtn">Підтвердити замовлення · ${fmt(total(items))}</button>
       </form>`;
+    const sum = total(items), feeLine = $('#feeLine'), orderBtn = $('#orderBtn');
+    const updFee = () => {
+      const mono = $('input[name=pay]:checked', body)?.value === 'mono';
+      const fee = mono ? Math.round(sum * CARD_FEE * 100) / 100 : 0;
+      feeLine.hidden = !mono;
+      if (mono) feeLine.innerHTML = `Комісія за оплату карткою 1,5%: <b>${fmt2(fee)}</b><br>До оплати: <b>${fmt2(sum + fee)}</b>`;
+      orderBtn.textContent = mono ? `Перейти до оплати · ${fmt2(sum + fee)}` : `Підтвердити замовлення · ${fmt(sum)}`;
+    };
+    $$('input[name=pay]', body).forEach((r) => r.addEventListener('change', updFee));
+    updFee();
     $$('[data-q]', body).forEach((b) => (b.onclick = () => {
       const id = b.closest('.line').dataset.id, it = cart.find((x) => x.id === id);
       it.qty += +b.dataset.q;
