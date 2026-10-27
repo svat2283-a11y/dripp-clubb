@@ -83,7 +83,7 @@ ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" hr
 <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="${url('assets/styles.css?v=' + VER)}">
 ${ld.map((o) => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, '\\u003c')}</script>`).join('\n')}
-<script>window.SITE=${JSON.stringify({ base: BASE, endpoint: cfg.orderEndpoint, mono: !!(cfg.orderEndpoint && cfg.monoEnabled), phone: cfg.phone, phoneText: cfg.phoneText })}</script>
+<script>window.SITE=${JSON.stringify({ base: BASE, endpoint: cfg.orderEndpoint, mono: !!(cfg.orderEndpoint && cfg.monoEnabled), req: cfg.requisites, prepay: cfg.prepay, phone: cfg.phone, phoneText: cfg.phoneText })}</script>
 </head>
 <body>
 <a class="skip" href="#main">До вмісту</a>
@@ -268,7 +268,7 @@ function productPage(p) {
       </div>
       <div class="perks">
         <div class="perk"><b>🚚</b>Нова Пошта / Укрпошта по всій Україні</div>
-        <div class="perk"><b>💳</b>Оплата на картку Mono / Приват</div>
+        <div class="perk"><b>💳</b>Оплата карткою онлайн або за реквізитами</div>
         <div class="perk perk--warn"><b>⚠️</b>Повернення та обміну немає — перевіряйте товар на пошті</div>
       </div>
       ${d ? `<div class="desc"><h2 class="desc__t">Опис</h2>${d}</div>` : ''}
@@ -304,15 +304,21 @@ function infoPage() {
   <div class="page-title"><h1>Доставка й оплата</h1></div>
   <div class="info">
     <div class="box"><h2>🚚 Доставка</h2><ul>
-      <li><b>Нова Пошта</b> — у відділення, поштомат або кур'єром.</li>
+      <li><b>Нова Пошта</b> — у відділення або поштомат.</li>
       <li><b>Укрпошта</b> — по всій Україні.</li>
       <li>Відправляємо після підтвердження замовлення, номер ТТН надсилаємо вам.</li>
       <li>Вартість — за тарифами перевізника.</li></ul></div>
     <div class="box"><h2>💳 Оплата</h2><ul>
       ${cfg.monoEnabled && cfg.orderEndpoint ? '<li><b>Карткою онлайн на сайті</b> (monobank, Apple Pay, Google Pay) — +1,5% до суми замовлення.</li>' : ''}
-      <li><b>Повна оплата на картку</b> — MonoBank <span class="cardnum">4441 1111 5893 0788</span> або ПриватБанк <span class="cardnum">5168 7451 1598 3550</span>, отримувач Жданов С. О.</li>
-      <li><b>Передоплата від 150 грн</b> на картку.</li>
-      <li><b>На рахунок (IBAN)</b> — з номером замовлення у призначенні.</li></ul></div>
+      <li><b>Оплата за реквізитами</b> — повна сума на рахунок ФОП. Реквізити й готове призначення платежу ви отримаєте одразу після оформлення замовлення.</li>
+      <li><b>Передоплата ${cfg.prepay} грн</b> за реквізитами, решта — при отриманні.</li></ul>
+      <div class="reqs">
+        <div><span>Отримувач</span><b>${esc(cfg.requisites.receiver)}</b></div>
+        <div><span>IBAN</span><b class="cardnum">${esc(cfg.requisites.iban)}</b></div>
+        <div><span>РНОКПП / ЄДРПОУ</span><b>${esc(cfg.requisites.code)}</b></div>
+        <div><span>Банк</span><b>${esc(cfg.requisites.bank)}, МФО ${esc(cfg.requisites.mfo)}</b></div>
+        <div><span>Або на картку ФОП</span><b class="cardnum">${esc(cfg.requisites.card.replace(/(\d{4})(?=\d)/g, '$1 '))}</b></div>
+      </div></div>
     <div class="box"><h2>🛒 Як замовити</h2><ul>
       <li>Додайте товар у кошик або натисніть «Купити в 1 клік».</li>
       <li>Або зателефонуйте: <a href="tel:${cfg.phone}" class="link">${esc(cfg.phoneText)}</a>.</li></ul></div>

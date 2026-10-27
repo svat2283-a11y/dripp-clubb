@@ -4,7 +4,7 @@
 
 const MONO = 'https://api.monobank.ua/api/merchant';
 const CARD_FEE = 0.015; // surcharge for paying by card on the site; transfers and prepayment are free
-const PAY_LABEL = { mono: 'Карткою онлайн (monobank)', card: 'Переказ на картку', prepay: 'Передоплата 150 грн' };
+const PAY_LABEL = { mono: 'Карткою онлайн (monobank)', iban: 'За реквізитами (повна сума)', card: 'За реквізитами (повна сума)', prepay: 'Передоплата 150 грн' };
 
 const json = (body, status = 200, origin = '*') =>
   new Response(JSON.stringify(body), {
@@ -37,7 +37,7 @@ async function createOrder(req, env, origin) {
   const o = await req.json().catch(() => null);
   if (!o || !Array.isArray(o.items) || !o.items.length || o.items.length > 30) return json({ ok: false, error: 'bad order' }, 400, origin);
   const phone = clean(o.phone, 20).replace(/[^\d+]/g, '');
-  if (!clean(o.name) || !/^\+?\d{10,13}$/.test(phone) || !clean(o.city) || !clean(o.np)) return json({ ok: false, error: 'bad contact' }, 400, origin);
+  if (!clean(o.name) || !/^\+?\d{10,13}$/.test(phone) || !clean(o.city) || !(clean(o.np) || /^\d{5}$/.test(clean(o.upIndex, 5)))) return json({ ok: false, error: 'bad contact' }, 400, origin);
 
   // prices always come from the published catalogue, never from the browser
   const byId = await catalog(env);
@@ -49,7 +49,7 @@ async function createOrder(req, env, origin) {
     items.push({ id: p.id, name: p.name, price: p.price, qty, img: p.img, url: env.SITE_URL.replace(/\/$/, '') + '/' + p.path });
   }
   const total = items.reduce((a, i) => a + i.price * i.qty, 0);
-  const pay = ['mono', 'card', 'prepay'].includes(o.pay) ? o.pay : 'card';
+  const pay = ['mono', 'iban', 'prepay'].includes(o.pay) ? o.pay : 'iban';
   const fee = pay === 'mono' ? Math.round(total * CARD_FEE * 100) / 100 : 0;
   const orderId = 'DC' + Date.now().toString(36).toUpperCase().slice(-6);
 
@@ -87,7 +87,7 @@ async function createOrder(req, env, origin) {
     '',
     `👤 ${clean(o.name)}`,
     `📞 ${phone}`,
-    `📦 ${clean(o.city)}, ${clean(o.np)}`,
+    o.carrier === 'up' ? `📦 Укрпошта: ${clean(o.city)}, індекс ${clean(o.upIndex, 5)}` : `📦 Нова Пошта: ${clean(o.city)}, ${clean(o.np)}`,
     `💳 ${PAY_LABEL[pay]}${pay === 'mono' ? (payUrl ? ' — очікуємо оплату' : ' — рахунок НЕ створено') : ''}`,
     o.comment ? `💬 ${clean(o.comment, 300)}` : '',
   ].filter(Boolean).join('\n'));
@@ -108,6 +108,35 @@ async function monoWebhook(req, env) {
   return new Response('ok');
 }
 
+// Nova Poshta city/branch lookup (public API, no key needed), cached at the edge for a day
+async function novaPoshta(url, req, origin) {
+  const cache = caches.default;
+  const hit = await cache.match(req);
+  if (hit) return hit;
+  const call = (modelName, calledMethod, methodProperties) => fetch('https://api.novaposhta.ua/v2.0/json/', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ apiKey: '', modelName, calledMethod, methodProperties }),
+  }).then((r) => r.json());
+  let out = [];
+  if (url.pathname === '/np/cities') {
+    const q = (url.searchParams.get('q') || '').trim().slice(0, 40);
+    if (q.length >= 2) {
+      const d = await call('Address', 'searchSettlements', { CityName: q, Limit: '20', Page: '1' });
+      out = (d.data?.[0]?.Addresses || []).filter((a) => a.Warehouses > 0)
+        .map((a) => ({ ref: a.Ref, name: a.MainDescription, label: `${a.SettlementTypeCode} ${a.MainDescription}, ${a.Area} обл.`.replace(/\s+/g, ' ') }));
+    }
+  } else if (url.pathname === '/np/branches') {
+    const ref = (url.searchParams.get('ref') || '').replace(/[^a-f0-9-]/gi, '');
+    if (ref) {
+      const d = await call('AddressGeneral', 'getWarehouses', { SettlementRef: ref, Limit: '600', Page: '1' });
+      out = (d.data || []).map((w) => ({ n: +w.Number || 0, name: w.Description }));
+    }
+  }
+  const res = new Response(JSON.stringify(out), { headers: { 'content-type': 'application/json', 'access-control-allow-origin': origin, 'cache-control': 'public, max-age=86400' } });
+  if (out.length) await cache.put(req, res.clone());
+  return res;
+}
+
 export default {
   async fetch(req, env) {
     const url = new URL(req.url);
@@ -122,6 +151,7 @@ export default {
       catch (e) { await telegram(env, '⚠️ Помилка замовлення: ' + e.message); return json({ ok: false, error: 'server' }, 500, origin); }
     }
     if (req.method === 'POST' && url.pathname === '/mono-webhook') return monoWebhook(req, env);
+    if (req.method === 'GET' && url.pathname.startsWith('/np/')) return novaPoshta(url, req, origin);
     // one-time setup helper: shows who wrote to the bot, until TG_CHAT is configured
     if (url.pathname === '/tg-chats' && env.TG_TOKEN && !env.TG_CHAT) {
       const u = await fetch(`https://api.telegram.org/bot${env.TG_TOKEN}/getUpdates`).then((r) => r.json());

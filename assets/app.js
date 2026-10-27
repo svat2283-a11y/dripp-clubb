@@ -137,12 +137,16 @@
         <h3>Оформлення</h3>
         <label>Ім'я та прізвище<input name="name" required autocomplete="name" maxlength="80"></label>
         <label>Телефон<input name="phone" required type="tel" inputmode="tel" autocomplete="tel" placeholder="+380" maxlength="20"></label>
-        <label>Місто<input name="city" required autocomplete="address-level2" maxlength="60"></label>
-        <label>Відділення / поштомат Нової Пошти<input name="np" required placeholder="Напр. Відділення №12" maxlength="80"></label>
+        <fieldset><legend>Доставка</legend>
+          <div class="seg"><label><input type="radio" name="carrier" value="np" checked><span>Нова Пошта</span></label><label><input type="radio" name="carrier" value="up"><span>Укрпошта</span></label></div>
+        </fieldset>
+        <div class="ac"><label>Місто<input name="city" required autocomplete="off" maxlength="60" placeholder="Почніть вводити, напр. Льв…" role="combobox" aria-autocomplete="list" aria-expanded="false"></label><ul class="ac__list" id="cityList" role="listbox" hidden></ul></div>
+        <div class="ac" id="npBox"><label>Відділення / поштомат<input name="np" autocomplete="off" maxlength="120" placeholder="Спершу оберіть місто" role="combobox" aria-autocomplete="list" aria-expanded="false"></label><ul class="ac__list" id="npList" role="listbox" hidden></ul></div>
+        <label id="upBox" hidden>Індекс відділення Укрпошти<input name="upIndex" inputmode="numeric" maxlength="5" placeholder="Напр. 79000"></label>
         <fieldset><legend>Оплата</legend>
           ${S.mono ? '<label class="radio"><input type="radio" name="pay" value="mono" checked> Карткою онлайн (monobank, Apple Pay, Google Pay) <small class="fee">+1,5%</small></label>' : ''}
-          <label class="radio"><input type="radio" name="pay" value="card" ${S.mono ? '' : 'checked'}> Переказ на картку Mono / Приват</label>
-          <label class="radio"><input type="radio" name="pay" value="prepay"> Передоплата 150 грн, решта при отриманні</label>
+          <label class="radio"><input type="radio" name="pay" value="iban" ${S.mono ? '' : 'checked'}> Оплата за реквізитами (повна сума)</label>
+          <label class="radio"><input type="radio" name="pay" value="prepay"> Передоплата ${S.prepay || 150} грн за реквізитами, решта при отриманні</label>
         </fieldset>
         <label>Коментар (необов'язково)<textarea name="comment" rows="2" maxlength="300"></textarea></label>
         <p class="feeline" id="feeLine" hidden></p>
@@ -160,6 +164,7 @@
     };
     $$('input[name=pay]', body).forEach((r) => r.addEventListener('change', updFee));
     updFee();
+    setupDelivery();
     $$('[data-q]', body).forEach((b) => (b.onclick = () => {
       const id = b.closest('.line').dataset.id, it = cart.find((x) => x.id === id);
       it.qty += +b.dataset.q;
@@ -174,7 +179,7 @@
     const form = e.target, err = $('#orderErr'), btn = $('button[type=submit]', form);
     const d = Object.fromEntries(new FormData(form));
     const phone = d.phone.replace(/[^\d+]/g, '');
-    const bad = !d.name.trim() ? 'Вкажіть ім\'я' : !/^\+?\d{10,13}$/.test(phone) ? 'Перевірте номер телефону' : !d.city.trim() ? 'Вкажіть місто' : !d.np.trim() ? 'Вкажіть відділення Нової Пошти' : '';
+    const bad = !d.name.trim() ? 'Вкажіть ім\'я' : !/^\+?\d{10,13}$/.test(phone) ? 'Перевірте номер телефону' : !d.city.trim() ? 'Вкажіть місто' : d.carrier === 'up' ? (!/^\d{5}$/.test(d.upIndex || '') ? 'Вкажіть індекс відділення Укрпошти (5 цифр)' : '') : !d.np.trim() ? 'Оберіть відділення Нової Пошти' : '';
     if (bad) { err.textContent = bad; err.hidden = false; return; }
     err.hidden = true;
     const items = (checkoutItems || cart).map(({ id, name, price, qty, path }) => ({ id, name, price, qty, url: location.origin + S.base + path }));
@@ -193,7 +198,7 @@
       }
     }
     // no backend (or it failed): hand the order over by SMS / phone
-    const text = `Замовлення Dripp_Clubb\n${items.map((i) => `${i.name} ×${i.qty} — ${fmt(i.price * i.qty)}`).join('\n')}\nРазом: ${fmt(order.total)}\n${d.name}, ${phone}\n${d.city}, ${d.np}\nОплата: ${{ card: 'на картку', prepay: 'передоплата 150 грн' }[d.pay] || d.pay}${d.comment ? '\n' + d.comment : ''}`;
+    const text = `Замовлення Dripp_Clubb\n${items.map((i) => `${i.name} ×${i.qty} — ${fmt(i.price * i.qty)}`).join('\n')}\nРазом: ${fmt(order.total)}\n${d.name}, ${phone}\n${d.carrier === 'up' ? `Укрпошта: ${d.city}, ${d.upIndex}` : `Нова Пошта: ${d.city}, ${d.np}`}\nОплата: ${{ iban: 'за реквізитами', prepay: 'передоплата', mono: 'карткою онлайн' }[d.pay] || d.pay}${d.comment ? '\n' + d.comment : ''}`;
     body.innerHTML = `<div class="done"><h3>Залишився один крок</h3><p class="muted">Надішліть замовлення SMS — текст уже готовий — або зателефонуйте нам.</p>
       <a class="btn btn--clay btn--block" href="sms:${S.phone}?&body=${encodeURIComponent(text)}">Надіслати SMS</a>
       <a class="btn btn--ghost btn--block" href="tel:${S.phone}">Зателефонувати ${esc(S.phoneText)}</a>
@@ -203,9 +208,85 @@
 
   function done(order, res) {
     if (!checkoutItems) { cart = []; save(); }
-    body.innerHTML = `<div class="done"><h3>Дякуємо! Замовлення №${esc(res.orderId || '')} прийнято</h3>
-      <p class="muted">${res.payUrl ? 'Переходимо до оплати…' : 'Ми зв\'яжемося з вами найближчим часом для підтвердження.'}</p>
-      ${order.pay === 'card' || order.pay === 'prepay' ? `<p>Реквізити для оплати — у розділі <a class="link" href="${S.base}info/">«Доставка й оплата»</a>. Після оплати надішліть, будь ласка, квитанцію.</p>` : ''}</div>`;
+    const id = res.orderId || '';
+    let html = `<div class="done"><h3>Дякуємо! Замовлення №${esc(id)} прийнято</h3>
+      <p class="muted">${res.payUrl ? 'Переходимо до оплати…' : 'Ми зв\'яжемося з вами для підтвердження.'}</p></div>`;
+    if ((order.pay === 'iban' || order.pay === 'prepay') && S.req) {
+      const R = S.req;
+      const amount = order.pay === 'prepay' ? (S.prepay || 150) : order.total;
+      const what = order.items.length === 1 ? order.items[0].name.slice(0, 70) : `${order.items[0].name.slice(0, 50)} та ще ${order.items.length - 1} тов.`;
+      const purpose = `${order.pay === 'prepay' ? 'Передоплата' : 'Оплата'} за товар ${what}, згідно замовлення №${id}. Без ПДВ`;
+      const rows = [
+        ['Сума', fmt2(amount), String(amount)],
+        ['Отримувач', R.receiver, R.receiver],
+        ['IBAN', R.iban, R.iban],
+        ['РНОКПП / ЄДРПОУ', R.code, R.code],
+        ['Призначення платежу', purpose, purpose],
+      ];
+      const all = `Отримувач: ${R.receiver}\nIBAN: ${R.iban}\nРНОКПП/ЄДРПОУ: ${R.code}\nБанк: ${R.bank}, МФО ${R.mfo}\nСума: ${amount} грн\nПризначення платежу: ${purpose}`;
+      html += `<div class="pay">
+        <h3>${order.pay === 'prepay' ? `Передоплата ${amount} грн` : 'Оплата за реквізитами'}</h3>
+        <p class="muted">Скопіюйте дані у свій банк. Відправимо після надходження оплати.</p>
+        ${rows.map(([k, v, c]) => `<div class="pay__row"><span>${k}</span><b>${esc(v)}</b><button type="button" class="copy" data-copy="${esc(c)}">Скопіювати</button></div>`).join('')}
+        <button type="button" class="btn btn--clay btn--block copy" data-copy="${esc(all)}">Скопіювати всі реквізити</button>
+        ${R.card ? `<p class="muted pay__card">Або переказ на картку ФОП: <b>${esc(R.card.replace(/(\d{4})(?=\d)/g, '$1 '))}</b> <button type="button" class="copy" data-copy="${esc(R.card)}">Скопіювати</button><br>У коментарі вкажіть №${esc(id)}.</p>` : ''}
+        <p class="note">Після оплати, будь ласка, надішліть квитанцію на ${esc(S.phoneText)}.</p>
+      </div>`;
+    }
+    body.innerHTML = html;
+    $$('.copy', body).forEach((b) => (b.onclick = () => {
+      const t = b.dataset.copy;
+      const ok = () => { const old = b.textContent; b.textContent = 'Скопійовано ✓'; setTimeout(() => (b.textContent = old), 1500); };
+      if (navigator.clipboard) navigator.clipboard.writeText(t).then(ok, () => fallbackCopy(t, ok)); else fallbackCopy(t, ok);
+    }));
+  }
+  function fallbackCopy(t, ok) {
+    const ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); ok(); } catch {}
+    ta.remove();
+  }
+
+  // ---------- city / branch autocomplete (Nova Poshta via our worker) ----------
+  function setupDelivery() {
+    const api = S.endpoint ? S.endpoint.replace(/\/order$/, '') : '';
+    const form = $('#orderForm'), city = form.city, np = form.np, cityList = $('#cityList'), npList = $('#npList');
+    let cityRef = '', branches = [], t = 0;
+    const show = (list, items, pick) => {
+      list.innerHTML = items.map((x, i) => `<li role="option" data-i="${i}">${esc(x.label || x.name)}</li>`).join('');
+      list.hidden = !items.length;
+      list.previousElementSibling.querySelector('input').setAttribute('aria-expanded', String(!!items.length));
+      list.onmousedown = (e) => { const li = e.target.closest('li'); if (li) { e.preventDefault(); pick(items[+li.dataset.i]); list.hidden = true; } };
+    };
+    const carrier = () => $('input[name=carrier]:checked', form).value;
+    $$('input[name=carrier]', form).forEach((r) => r.addEventListener('change', () => {
+      const up = carrier() === 'up';
+      $('#npBox').hidden = up; $('#upBox').hidden = !up;
+    }));
+    const pickCity = (c) => {
+      city.value = c.name; cityRef = c.ref; np.value = ''; branches = [];
+      np.placeholder = 'Завантажуємо відділення…';
+      fetch(`${api}/np/branches?ref=${encodeURIComponent(c.ref)}`).then((r) => r.json()).then((b) => {
+        branches = b.sort((x, y) => x.n - y.n);
+        np.placeholder = branches.length ? 'Номер або вулиця, напр. 12' : 'Відділень не знайдено — впишіть вручну';
+        if (carrier() === 'np') np.focus();
+      }).catch(() => (np.placeholder = 'Впишіть номер відділення'));
+    };
+    city.addEventListener('input', () => {
+      cityRef = '';
+      clearTimeout(t);
+      const q = city.value.trim();
+      if (q.length < 2 || !api) { cityList.hidden = true; return; }
+      t = setTimeout(() => fetch(`${api}/np/cities?q=${encodeURIComponent(q)}`).then((r) => r.json()).then((c) => show(cityList, c, pickCity)).catch(() => {}), 250);
+    });
+    const filterNp = () => {
+      const q = np.value.trim().toLowerCase();
+      const list = (q ? branches.filter((b) => String(b.n) === q.replace(/\D/g, '') || b.name.toLowerCase().includes(q)) : branches).slice(0, 40);
+      show(npList, list, (b) => (np.value = b.name));
+    };
+    np.addEventListener('input', filterNp);
+    np.addEventListener('focus', () => { if (branches.length) filterNp(); });
+    [city, np].forEach((el) => el.addEventListener('blur', () => setTimeout(() => { cityList.hidden = npList.hidden = true; }, 150)));
   }
 
   // product buttons

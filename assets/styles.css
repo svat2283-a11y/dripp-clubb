@@ -281,3 +281,28 @@ h2{font-size:clamp(26px,3.4vw,40px)}
 
 .fee{color:var(--clay-d);font-weight:800;margin-left:4px}
 .feeline{background:#fff4ec;border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.5}
+
+/* ---- delivery autocomplete + requisites ---- */
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg label{display:block!important;font-weight:600!important}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg span{display:block;text-align:center;padding:11px;border-radius:12px;border:1.5px solid var(--line);background:#fff;cursor:pointer}
+.seg input:checked+span{border-color:var(--clay);background:#fff4ec;color:var(--clay-d)}
+.seg input:focus-visible+span{outline:3px solid var(--sage)}
+.ac{position:relative}
+.ac__list{position:absolute;left:0;right:0;top:100%;z-index:5;margin-top:4px;list-style:none;padding:6px;background:#fff;border:1.5px solid var(--line);border-radius:12px;box-shadow:var(--shadow);max-height:260px;overflow-y:auto}
+.ac__list li{padding:9px 10px;border-radius:8px;font-size:14px;cursor:pointer;line-height:1.35}
+.ac__list li:hover{background:var(--bg)}
+.pay{display:grid;gap:10px;background:#fff;border-radius:var(--r);padding:18px;text-align:left}
+.pay h3{font-size:18px}
+.pay__row{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;border-top:1px solid var(--line);padding-top:10px}
+.pay__row span{grid-column:1/-1;font-size:12px;color:var(--ink-2);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+.pay__row b{word-break:break-word;font-size:14.5px}
+.copy{border:1.5px solid var(--line);background:var(--bg);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+.copy:hover{border-color:var(--clay)}
+.btn.copy{border:0;font-size:15px}
+.pay__card{font-size:14px}
+.reqs{display:grid;gap:8px;margin-top:14px;background:var(--bg);border-radius:var(--r-sm);padding:14px}
+.reqs div{display:grid;gap:2px}
+.reqs span{font-size:12px;color:var(--ink-2);font-weight:600}
+.reqs b{word-break:break-word}

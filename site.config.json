@@ -5,5 +5,15 @@
   "phoneText": "+380 (67) 732-52-92",
   "email": "dripclubprom@gmail.com",
   "city": "Львів",
-  "monoEnabled": true
+  "monoEnabled": true,
+  "requisites": {
+    "receiver": "ФОП Жданов Святослав Олександрович",
+    "iban": "UA413220010000026002360042916",
+    "code": "3862909032",
+    "bank": "АТ «Універсал Банк»",
+    "mfo": "322001",
+    "bankCode": "21133352",
+    "card": "5408810041915272"
+  },
+  "prepay": 150
 }
